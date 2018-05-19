@@ -6,6 +6,10 @@
 #include <unistd.h>
 #include <pthread.h>
 
+DynArray jobs;
+pthread_mutex_t mutex;
+pthread_cond_t cond;
+
 struct job_t {
     // where we are starting to compute the set
     double xmin;
@@ -26,6 +30,8 @@ struct job_t {
     int wpmax;
     int hpmin;
     int hpmax;
+
+    int rendered;
 };
 
 int mandelbrot(double creal, double cimag, int maxiter) {
@@ -59,7 +65,7 @@ void mandelbrot_set(struct job_t* job) {
     }
 
     for (i = 0; i < hdist; i++){
-        base = job->dx * job->wpmin + job->ymin;
+        base = job->dx * job->hpmin + job->ymin;
         ylin[i] = base + (i * job->dy);
     }
 
@@ -74,8 +80,34 @@ void mandelbrot_set(struct job_t* job) {
 
 void *worker(void* p){
     struct job_t* job = p;
+
     mandelbrot_set(job);
+
+    pthread_mutex_lock(&mutex);
+
+    dynarray_insert(&jobs, job);
+
+    pthread_cond_signal(&cond);
+
+    pthread_mutex_unlock(&mutex);
+
     pthread_exit(0);
+}
+
+void render(Display* display, Window win, GC gc, struct job_t* job){
+    int wdist = job->wpmax - job->wpmin;
+    int hdist = job->hpmax - job->hpmin;
+
+    for (int i = 0; i < wdist; i++) {
+        for (int j = 0; j < hdist; j++) {
+            //printf("accessing %d\n", i * wdist + j);
+            if (job->output[i * wdist + j] > 0){
+                int x = i + job->wpmin;
+                int y = j + job->hpmin;
+                XDrawPoint(display, win, gc, x, y);
+            }
+        }
+    }
 }
 
 int main() {
@@ -103,6 +135,7 @@ int main() {
 
     DynArray threads;
     dynarray_init(&threads, 100);
+    dynarray_init(&jobs, 100);
 
     pthread_t thread;
     for (int i = 0; i < 10; ++i) {
@@ -119,10 +152,33 @@ int main() {
             job->hpmax = job->hpmin + 100;
             job->wpmin = height / 10 * j;
             job->wpmax = job->wpmin + 100;
+            job->rendered = False;
 
             pthread_create(&thread, NULL, &worker, job);
             dynarray_insert(&threads, (void *) thread);
         }
+    }
+
+    for (int i = 0; i < threads.used; ++i) {
+        pthread_mutex_lock(&mutex);
+
+        int rendered = False;
+        for (int j = 0; j < jobs.used; ++j) {
+            struct job_t* job = jobs.array[j];
+            if (!job->rendered){
+                job->rendered = True;
+                rendered = True;
+                render(display, win, gc, job);
+            }
+        }
+
+        if (!rendered && jobs.used < 100){
+            pthread_cond_wait(&cond, &mutex);
+        }
+
+        pthread_mutex_unlock(&mutex);
+
+        XFlush(display);
     }
 
     for (int i = 0; i < threads.used; ++i) {
@@ -131,14 +187,7 @@ int main() {
     }
 
     dynarray_free(&threads);
-
-//    for (int i = 0; i < width; i++) {
-//        for (int j = 0; j < height; j++) {
-//            if (output[i][j] > 0){
-//                XDrawPoint(display, win, gc, i, j);
-//            }
-//        }
-//    }
+    dynarray_free(&jobs);
 
     XFlush(display);
 
