@@ -134,10 +134,13 @@ int main() {
 
     output = mandelbrot_set(-2.0, 0.05, -1.25, 1.25, width, height, maxiter, output);
 
-    XDrawPoint(display, win, gc, 5, 5);
-    XDrawPoint(display, win, gc, 5, height-5);
-    XDrawPoint(display, win, gc, width-5, 5);
-    XDrawPoint(display, win, gc, width-5, height-5);
+    for (int i = 0; i < width; i++) {
+        for (int j = 0; j < height; j++) {
+            if (output[i*width + j] > 0){
+                XDrawPoint(display, win, gc, i, j);
+            }
+        }
+    }
 
     free(output);
 
