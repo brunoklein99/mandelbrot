@@ -5,6 +5,9 @@
 #include <unistd.h>
 #include <pthread.h>
 
+const int width = 1000;
+const int height = 1000;
+
 typedef struct {
     // where we are starting to compute the set
     double xmin;
@@ -64,14 +67,12 @@ void mandelbrot_set(job_t* job) {
 
     for (i = job->wpmin; i < job->wpmax; i++) {
         for (j = job->hpmin; j < job->hpmax; j++) {
-            job->output[i * wdist + j] = mandelbrot(xlin[i], ylin[j], job->maxiter);
+            job->output[i * width + j] = mandelbrot(xlin[i], ylin[j], job->maxiter);
         }
     }
 }
 
 int main() {
-    int width = 1000;
-    int height = 1000;
     int maxiter = 80;
     int nthread = 100;
 
@@ -85,12 +86,12 @@ int main() {
     GC gc = create_gc(display, win, 0);
     XSync(display, False);
 
-    int *output = (int *) malloc ((width*height)*sizeof(int));
+    int output[width][height];
 
-    double xmin = -2.0;
-    double xmax = 0.05;
-    double ymin = -1.25;
-    double ymax = 1.25;
+    double xmin = -1.0;
+    double xmax = 1;
+    double ymin = -1;
+    double ymax = 1;
 
     double dx = (xmax - xmin) / width;
     double dy = (ymax - ymin) / height;
@@ -101,27 +102,25 @@ int main() {
     job.maxiter = maxiter;
     job.dx = dx;
     job.dy = dy;
-    job.hpmax = 1000;
+    job.hpmax = 500;
     job.hpmin = 0;
-    job.wpmax = 1000;
+    job.wpmax = 500;
     job.wpmin = 0;
-    job.output = output;
+    job.output = (int *) output;
 
     mandelbrot_set(&job);
 
     for (int i = 0; i < width; i++) {
         for (int j = 0; j < height; j++) {
-            if (output[i*width + j] > 0){
+            if (output[i][j] > 0){
                 XDrawPoint(display, win, gc, i, j);
             }
         }
     }
 
-    free(output);
-
     XFlush(display);
 
-    sleep(10);
+    sleep(2222222);
 
     XCloseDisplay(display);
 
