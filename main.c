@@ -3,7 +3,18 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <unistd.h>
+#include <pthread.h>
 
+typedef struct {
+    double xmin;
+    double xmax;
+    double ymin;
+    double ymax;
+    int maxiter;
+    int* output;
+    int width;
+    int height;
+} job_t;
 
 int mandelbrot(double creal, double cimag, int maxiter) {
     double real = creal, imag = cimag;
@@ -19,44 +30,39 @@ int mandelbrot(double creal, double cimag, int maxiter) {
     return 0;
 }
 
-int* mandelbrot_set(double xmin, double xmax,
-                    double ymin, double ymax,
-                    int width, int height,
-                    int maxiter,
-                    int *output) {
+void mandelbrot_set(job_t* job) {
 
     int i,j;
 
-    double *xlin = (double*) malloc (width*sizeof(double));
-    double *ylin = (double*) malloc (width*sizeof(double));
+    double *xlin = (double*) malloc (job->width*sizeof(double));
+    double *ylin = (double*) malloc (job->width*sizeof(double));
 
-    double dx = (xmax - xmin)/width;
-    double dy = (ymax - ymin)/height;
+    double dx = (job->xmax - job->xmin) / job->width;
+    double dy = (job->ymax - job->ymin) / job->height;
 
-    for (i = 0; i < width; i++){
-        xlin[i] = xmin + i * dx;
+    for (i = 0; i < job->width; i++){
+        xlin[i] = job->xmin + i * dx;
     }
 
-    for (j = 0; j < height; j++){
-        ylin[j] = ymin + j * dy;
+    for (j = 0; j < job->height; j++){
+        ylin[j] = job->ymin + j * dy;
     }
 
-    for (i = 0; i < width; i++) {
-        for (j = 0; j < height; j++) {
-            output[i*width + j] = mandelbrot(xlin[i], ylin[j], maxiter);
+    for (i = 0; i < job->width; i++) {
+        for (j = 0; j < job->height; j++) {
+            job->output[i* job->width + j] = mandelbrot(xlin[i], ylin[j], job->maxiter);
         }
     }
 
     free(xlin);
     free(ylin);
-
-    return output;
 }
 
 int main() {
     int width = 1000;
     int height = 1000;
     int maxiter = 80;
+    int nthread = 100;
 
     Display* display = XOpenDisplay(":1");
     if (display == NULL) {
@@ -70,7 +76,17 @@ int main() {
 
     int *output = (int *) malloc ((width*height)*sizeof(int));
 
-    output = mandelbrot_set(-2.0, 0.05, -1.25, 1.25, width, height, maxiter, output);
+    job_t job;
+    job.maxiter = maxiter;
+    job.xmin = -2.0;
+    job.xmax = 0.05;
+    job.ymin = 1.25;
+    job.ymax = -1.25;
+    job.width = width;
+    job.height = height;
+    job.output = output;
+
+    mandelbrot_set(&job);
 
     for (int i = 0; i < width; i++) {
         for (int j = 0; j < height; j++) {
