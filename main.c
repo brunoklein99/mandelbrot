@@ -6,14 +6,25 @@
 #include <pthread.h>
 
 typedef struct {
+    // where we are starting to compute the set
     double xmin;
-    double xmax;
     double ymin;
-    double ymax;
+
+    // distance of pixel steps within set compute boundary
+    double dx;
+    double dy;
+
+    // iterations
     int maxiter;
+
+    // output buffer
     int* output;
-    int width;
-    int height;
+
+    // boundary of pixels to compute
+    int wpmin;
+    int wpmax;
+    int hpmin;
+    int hpmax;
 } job_t;
 
 int mandelbrot(double creal, double cimag, int maxiter) {
@@ -32,30 +43,30 @@ int mandelbrot(double creal, double cimag, int maxiter) {
 
 void mandelbrot_set(job_t* job) {
 
-    int i,j;
+    int i, j;
+    double base;
 
-    double *xlin = (double*) malloc (job->width*sizeof(double));
-    double *ylin = (double*) malloc (job->width*sizeof(double));
+    int wdist = job->wpmax - job->wpmin;
+    int hdist = job->hpmax - job->hpmin;
 
-    double dx = (job->xmax - job->xmin) / job->width;
-    double dy = (job->ymax - job->ymin) / job->height;
+    double xlin[wdist];
+    double ylin[hdist];
 
-    for (i = 0; i < job->width; i++){
-        xlin[i] = job->xmin + i * dx;
+    for (i = 0; i < wdist; i++){
+        base = job->dx * job->wpmin + job->xmin;
+        xlin[i] = base + (i * job->dx);
     }
 
-    for (j = 0; j < job->height; j++){
-        ylin[j] = job->ymin + j * dy;
+    for (i = 0; i < hdist; i++){
+        base = job->dx * job->wpmin + job->ymin;
+        ylin[i] = base + (i * job->dy);
     }
 
-    for (i = 0; i < job->width; i++) {
-        for (j = 0; j < job->height; j++) {
-            job->output[i* job->width + j] = mandelbrot(xlin[i], ylin[j], job->maxiter);
+    for (i = job->wpmin; i < job->wpmax; i++) {
+        for (j = job->hpmin; j < job->hpmax; j++) {
+            job->output[i * wdist + j] = mandelbrot(xlin[i], ylin[j], job->maxiter);
         }
     }
-
-    free(xlin);
-    free(ylin);
 }
 
 int main() {
@@ -76,14 +87,24 @@ int main() {
 
     int *output = (int *) malloc ((width*height)*sizeof(int));
 
+    double xmin = -2.0;
+    double xmax = 0.05;
+    double ymin = -1.25;
+    double ymax = 1.25;
+
+    double dx = (xmax - xmin) / width;
+    double dy = (ymax - ymin) / height;
+
     job_t job;
+    job.xmin = xmin;
+    job.ymin = ymin;
     job.maxiter = maxiter;
-    job.xmin = -2.0;
-    job.xmax = 0.05;
-    job.ymin = 1.25;
-    job.ymax = -1.25;
-    job.width = width;
-    job.height = height;
+    job.dx = dx;
+    job.dy = dy;
+    job.hpmax = 1000;
+    job.hpmin = 0;
+    job.wpmax = 1000;
+    job.wpmin = 0;
     job.output = output;
 
     mandelbrot_set(&job);
