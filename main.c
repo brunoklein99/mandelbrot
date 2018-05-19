@@ -113,7 +113,7 @@ void render(Display* display, Window win, GC gc, struct job_t* job){
 int main() {
     int width = 1000;
     int height = 1000;
-    int maxiter = 80;
+    int maxiter = 10000;
 
     Display* display = XOpenDisplay(":1");
     if (display == NULL) {
@@ -191,7 +191,7 @@ int main() {
 
     XFlush(display);
 
-    sleep(2222222);
+    sleep(1000);
 
     XCloseDisplay(display);
 
