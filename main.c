@@ -65,8 +65,8 @@ void mandelbrot_set(struct job_t* job) {
 
     job->output = malloc(wdist * hdist * sizeof(int));
 
-    for (i = job->wpmin; i < job->wpmax; i++) {
-        for (j = job->hpmin; j < job->hpmax; j++) {
+    for (i = 0; i < wdist; ++i) {
+        for (j = 0; j < hdist; ++j) {
             job->output[i * wdist + j] = mandelbrot(xlin[i], ylin[j], job->maxiter);
         }
     }
@@ -105,8 +105,8 @@ int main() {
     dynarray_init(&threads, 100);
 
     pthread_t thread;
-    for (int i = 1; i <= 10; ++i) {
-        for (int j = 1; j <= 10; ++j) {
+    for (int i = 0; i < 10; ++i) {
+        for (int j = 0; j < 10; ++j) {
             struct job_t* job;
             job = malloc(sizeof(struct job_t));
             job->xmin = xmin;
@@ -115,10 +115,10 @@ int main() {
             job->dx = dx;
             job->dy = dy;
             job->output = NULL;
-            job->hpmax = width / 10 * i;
-            job->hpmin = 0;
-            job->wpmax = height / 10 * i;
-            job->wpmin = 0;
+            job->hpmin = width / 10 * i;
+            job->hpmax = job->hpmin + 100;
+            job->wpmin = height / 10 * j;
+            job->wpmax = job->wpmin + 100;
 
             pthread_create(&thread, NULL, &worker, job);
             dynarray_insert(&threads, (void *) thread);
