@@ -9,5 +9,5 @@ include_directories(${X11_INCLUDE_DIR})
 
 find_package (Threads)
 
-add_executable(mandelbrot main.c window.h)
+add_executable(mandelbrot main.c window.h dynarray.h)
 target_link_libraries (mandelbrot ${CMAKE_THREAD_LIBS_INIT})

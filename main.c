@@ -1,4 +1,5 @@
 #include "window.h"
+#include "dynarray.h"
 
 #include <stdio.h>
 #include <malloc.h>
@@ -101,6 +102,8 @@ int main() {
     double dx = (xmax - xmin) / width;
     double dy = (ymax - ymin) / height;
 
+    DynArray threads;
+    dynarray_init(&threads, 100);
 
     pthread_t thread;
     for (int i = 1; i <= 10; ++i) {
@@ -119,11 +122,16 @@ int main() {
             job->wpmin = 0;
 
             pthread_create(&thread, NULL, &worker, job);
-            pthread_join(thread, NULL);
-
-            free(job);
+            dynarray_insert(&threads, (void *) thread);
         }
     }
+
+    for (int i = 0; i < threads.used; ++i) {
+        thread = (pthread_t) threads.array[i];
+        pthread_join(thread, NULL);
+    }
+
+    dynarray_free(&threads);
 
     for (int i = 0; i < width; i++) {
         for (int j = 0; j < height; j++) {
