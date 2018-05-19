@@ -6,9 +6,6 @@
 #include <unistd.h>
 #include <pthread.h>
 
-const int width = 1000;
-const int height = 1000;
-
 struct job_t {
     // where we are starting to compute the set
     double xmin;
@@ -66,9 +63,11 @@ void mandelbrot_set(struct job_t* job) {
         ylin[i] = base + (i * job->dy);
     }
 
+    job->output = malloc(wdist * hdist * sizeof(int));
+
     for (i = job->wpmin; i < job->wpmax; i++) {
         for (j = job->hpmin; j < job->hpmax; j++) {
-            job->output[i * width + j] = mandelbrot(xlin[i], ylin[j], job->maxiter);
+            job->output[i * wdist + j] = mandelbrot(xlin[i], ylin[j], job->maxiter);
         }
     }
 }
@@ -80,6 +79,8 @@ void *worker(void* p){
 }
 
 int main() {
+    int width = 1000;
+    int height = 1000;
     int maxiter = 80;
 
     Display* display = XOpenDisplay(":1");
@@ -91,8 +92,6 @@ int main() {
 
     GC gc = create_gc(display, win, 0);
     XSync(display, False);
-
-    int output[width][height];
 
     double xmin = -1.0;
     double xmax = 1;
@@ -115,7 +114,7 @@ int main() {
             job->maxiter = maxiter;
             job->dx = dx;
             job->dy = dy;
-            job->output = (int *) output;
+            job->output = NULL;
             job->hpmax = width / 10 * i;
             job->hpmin = 0;
             job->wpmax = height / 10 * i;
@@ -133,13 +132,13 @@ int main() {
 
     dynarray_free(&threads);
 
-    for (int i = 0; i < width; i++) {
-        for (int j = 0; j < height; j++) {
-            if (output[i][j] > 0){
-                XDrawPoint(display, win, gc, i, j);
-            }
-        }
-    }
+//    for (int i = 0; i < width; i++) {
+//        for (int j = 0; j < height; j++) {
+//            if (output[i][j] > 0){
+//                XDrawPoint(display, win, gc, i, j);
+//            }
+//        }
+//    }
 
     XFlush(display);
 
