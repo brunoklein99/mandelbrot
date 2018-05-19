@@ -7,4 +7,7 @@ find_package(X11 REQUIRED)
 link_libraries(${X11_LIBRARIES})
 include_directories(${X11_INCLUDE_DIR})
 
+find_package (Threads)
+
 add_executable(mandelbrot main.c window.h)
+target_link_libraries (mandelbrot ${CMAKE_THREAD_LIBS_INIT})

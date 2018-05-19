@@ -8,7 +8,7 @@
 const int width = 1000;
 const int height = 1000;
 
-typedef struct {
+struct job_t {
     // where we are starting to compute the set
     double xmin;
     double ymin;
@@ -28,7 +28,7 @@ typedef struct {
     int wpmax;
     int hpmin;
     int hpmax;
-} job_t;
+};
 
 int mandelbrot(double creal, double cimag, int maxiter) {
     double real = creal, imag = cimag;
@@ -44,7 +44,7 @@ int mandelbrot(double creal, double cimag, int maxiter) {
     return 0;
 }
 
-void mandelbrot_set(job_t* job) {
+void mandelbrot_set(struct job_t* job) {
 
     int i, j;
     double base;
@@ -72,9 +72,14 @@ void mandelbrot_set(job_t* job) {
     }
 }
 
+void *worker(void* p){
+    struct job_t* job = p;
+    mandelbrot_set(job);
+    pthread_exit(0);
+}
+
 int main() {
     int maxiter = 80;
-    int nthread = 100;
 
     Display* display = XOpenDisplay(":1");
     if (display == NULL) {
@@ -96,19 +101,29 @@ int main() {
     double dx = (xmax - xmin) / width;
     double dy = (ymax - ymin) / height;
 
-    job_t job;
-    job.xmin = xmin;
-    job.ymin = ymin;
-    job.maxiter = maxiter;
-    job.dx = dx;
-    job.dy = dy;
-    job.hpmax = 500;
-    job.hpmin = 0;
-    job.wpmax = 500;
-    job.wpmin = 0;
-    job.output = (int *) output;
 
-    mandelbrot_set(&job);
+    pthread_t thread;
+    for (int i = 1; i <= 10; ++i) {
+        for (int j = 1; j <= 10; ++j) {
+            struct job_t* job;
+            job = malloc(sizeof(struct job_t));
+            job->xmin = xmin;
+            job->ymin = ymin;
+            job->maxiter = maxiter;
+            job->dx = dx;
+            job->dy = dy;
+            job->output = (int *) output;
+            job->hpmax = width / 10 * i;
+            job->hpmin = 0;
+            job->wpmax = height / 10 * i;
+            job->wpmin = 0;
+
+            pthread_create(&thread, NULL, &worker, job);
+            pthread_join(thread, NULL);
+
+            free(job);
+        }
+    }
 
     for (int i = 0; i < width; i++) {
         for (int j = 0; j < height; j++) {
