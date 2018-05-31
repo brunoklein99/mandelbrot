@@ -101,7 +101,7 @@ void render(Display* display, Window win, GC gc, struct job_t* job){
     for (int i = 0; i < wdist; i++) {
         for (int j = 0; j < hdist; j++) {
             //printf("accessing %d\n", i * wdist + j);
-            if (job->output[i * wdist + j] > 0){
+            if (job->output[i * wdist + j] == 0){
                 int x = i + job->wpmin;
                 int y = j + job->hpmin;
                 XDrawPoint(display, win, gc, x, y);
@@ -175,6 +175,7 @@ int main() {
         }
 
         if (!rendered || jobs.used < 100){
+            printf("waiting to_render_count: %zu \n", to_render_count);
             pthread_cond_wait(&cond, &mutex);
         }
 
