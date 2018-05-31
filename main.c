@@ -65,7 +65,7 @@ void mandelbrot_set(struct job_t* job) {
     }
 
     for (i = 0; i < hdist; i++){
-        base = job->dx * job->hpmin + job->ymin;
+        base = job->dy * job->hpmin + job->ymin;
         ylin[i] = base + (i * job->dy);
     }
 
@@ -159,20 +159,22 @@ int main() {
         }
     }
 
-    for (int i = 0; i < threads.used; ++i) {
+    size_t to_render_count = 100;
+    while (to_render_count > 0){
         pthread_mutex_lock(&mutex);
 
         int rendered = False;
         for (int j = 0; j < jobs.used; ++j) {
             struct job_t* job = jobs.array[j];
             if (!job->rendered){
+                to_render_count--;
                 job->rendered = True;
                 rendered = True;
                 render(display, win, gc, job);
             }
         }
 
-        if (!rendered && jobs.used < 100){
+        if (!rendered || jobs.used < 100){
             pthread_cond_wait(&cond, &mutex);
         }
 
@@ -196,4 +198,5 @@ int main() {
     XCloseDisplay(display);
 
     return 0;
+
 }
